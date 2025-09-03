@@ -1,7 +1,7 @@
 package notwowe.combodpsmaxxer;
 
-import notwowe.combodpsmaxxer.algo.DynamicProgrammingSolver;
-import notwowe.combodpsmaxxer.model.ComboSequence;
+import notwowe.combodpsmaxxer.algo.DPSolver;
+import notwowe.combodpsmaxxer.model.Combo;
 import notwowe.combodpsmaxxer.model.Move;
 
 import java.util.List;
@@ -9,10 +9,10 @@ import java.util.List;
 public class Main {
     public static void main(String[] args) {
 
-        Solver solver = new DynamicProgrammingSolver();
+        Solver solver = new DPSolver();
 
         List<Move> moveset = getTestMoveset();
-        ComboSequence optimalDpsRotation = solver.getMaxDpsComboSequenceFromMovesetInTime(moveset, 32);
+        Combo optimalDpsRotation = solver.getMaxDpsComboSequenceFromMovesetInTime(moveset,32);
 
         System.out.println("Optimal rotation motion value is " + optimalDpsRotation.totalMotionValue);
         System.out.println("Optimal rotation sequence is " + optimalDpsRotation.moveSequence);
