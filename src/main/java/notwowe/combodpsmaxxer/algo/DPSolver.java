@@ -62,21 +62,18 @@ public class DPSolver implements Solver {
 
     protected Combo getMaxDamageComboFromDpTable(Map<Move, Combo[]> dpTable, int timeDuration) {
 
-        int maxDamage = Integer.MIN_VALUE;
-        Combo maxDamageCombo = null;
+        Combo bestCombo = new Combo(Integer.MIN_VALUE);
 
         for (Combo[] comboArr : dpTable.values()) {
 
-            Combo finalCombo = comboArr[timeDuration];
+            Combo terminalCombo = comboArr[timeDuration];
 
-            int damage = finalCombo.totalDamage;
-            if (damage > maxDamage) {
-                maxDamage = damage;
-                maxDamageCombo = finalCombo;
+            if (terminalCombo.totalDamage > bestCombo.totalDamage) {
+                bestCombo = terminalCombo;
             }
         }
 
-        return maxDamageCombo;
+        return bestCombo;
     }
 
     private static String printDpTable(Map<Move, Combo[]> dpTable) {
