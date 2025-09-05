@@ -3,24 +3,27 @@ package notwowe.combodpsmaxxer;
 import notwowe.combodpsmaxxer.algo.DPSolver;
 import notwowe.combodpsmaxxer.model.Combo;
 import notwowe.combodpsmaxxer.model.Move;
+import notwowe.combodpsmaxxer.model.Moveset;
 
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+
+import static notwowe.combodpsmaxxer.model.Move.NEUTRAL;
 
 public class Main {
     public static void main(String[] args) {
 
         Solver solver = new DPSolver();
 
-        List<Move> moveset = getTestMoveset();
+        Moveset moveset = getTestMoveset();
         Combo optimalDpsRotation = solver.getMaxDpsComboSequenceFromMovesetInTime(moveset,32);
 
-        System.out.println("Optimal rotation motion value is " + optimalDpsRotation.totalMotionValue);
+        System.out.println("Optimal rotation motion value is " + optimalDpsRotation.totalDamage);
         System.out.println("Optimal rotation sequence is " + optimalDpsRotation.moveSequence);
     }
 
-    private static List<Move> getTestMoveset() {
-        Move neutral = new Move("Neutral", 0, 0);
-
+    private static Moveset getTestMoveset() {
         Move chop1 = new Move("Chop 1", 5, 5);
         Move chop2 = new Move("Chop 2", 8, 7);
         Move chop3 = new Move("Chop 3", 12, 10);
@@ -29,28 +32,57 @@ public class Main {
         Move slash2 = new Move("Slash 2", 11, 10);
         Move slash3 = new Move("Slash 3", 18, 14);
 
-        List<Move> allMoves = List.of(neutral, chop1, chop2, chop3, slash1, slash2, slash3);
+        Set<Move> allMoves = Set.of(NEUTRAL, chop1, chop2, chop3, slash1, slash2, slash3);
+        
+        Map<Move, Map<Move, Integer>> forwardEdges = new HashMap<>();
+        forwardEdges.put(NEUTRAL, new HashMap<>(Map.of(chop1, 0, slash1, 0)));
+        forwardEdges.put(chop1, new HashMap<>(Map.of(chop2, 0, slash1, 0)));
+        forwardEdges.put(chop2, new HashMap<>(Map.of(chop3, 0, slash1, 0)));
+        forwardEdges.put(slash1, new HashMap<>(Map.of(slash2, 0, chop1, 0)));
+        forwardEdges.put(slash2, new HashMap<>(Map.of(slash3, 0, chop1, 0)));
 
-        neutral.validFollowUpOptions = List.of(chop1, slash1);
+        connectNeutralToAllNodesAsForwardEdges(forwardEdges, NEUTRAL, allMoves);
+        Map<Move, Map<Move, Integer>> backEdges = generateReverseEdges(forwardEdges);
 
-        chop1.validFollowUpOptions = List.of(chop2, slash1, neutral);
-        chop2.validFollowUpOptions = List.of(chop3, slash1, neutral);
-        chop3.validFollowUpOptions = List.of(neutral);
 
-        slash1.validFollowUpOptions = List.of(slash2, chop1, neutral);
-        slash2.validFollowUpOptions = List.of(slash3, chop1, neutral);
-        slash3.validFollowUpOptions = List.of(neutral);
+        return new Moveset(allMoves, forwardEdges, backEdges);
+    }
 
-        neutral.validPrecursorMoves = allMoves;
+    private static void connectNeutralToAllNodesAsForwardEdges(Map<Move, Map<Move, Integer>> forwardEdges, Move neutral, Set<Move> allMoves) {
 
-        chop1.validPrecursorMoves = List.of(neutral, slash1, slash2);
-        chop2.validPrecursorMoves = List.of(chop1);
-        chop3.validPrecursorMoves = List.of(chop2);
+        Map<Move, Integer> forwardEdgesToAllNodesFromNeutral = new HashMap<>();
+        for(Move move : allMoves) {
+            forwardEdgesToAllNodesFromNeutral.put(move, 0);
+        }
 
-        slash1.validPrecursorMoves = List.of(neutral, chop1, chop2);
-        slash2.validPrecursorMoves = List.of(slash1);
-        slash3.validPrecursorMoves = List.of(slash2);
+        if (forwardEdges.containsKey(neutral)) {
+            Map<Move, Integer> existingMap = forwardEdges.get(neutral);
+            existingMap.putAll(forwardEdgesToAllNodesFromNeutral);
+        } else {
+            forwardEdges.put(neutral, forwardEdgesToAllNodesFromNeutral);
+        }
+    }
 
-        return allMoves;
+    private static Map<Move, Map<Move, Integer>> generateReverseEdges(Map<Move, Map<Move, Integer>> forwardEdges) {
+
+        Map<Move, Map<Move, Integer>> backEdges = new HashMap<>();
+
+        for(Map.Entry<Move, Map<Move, Integer>> forwardEntry : forwardEdges.entrySet()) {
+            Move from = forwardEntry.getKey();
+
+            for (Map.Entry<Move, Integer> forwardEdge : forwardEntry.getValue().entrySet()) {
+                Move to = forwardEdge.getKey();
+
+                if (backEdges.containsKey(to)) {
+                    backEdges.get(to).put(from, forwardEdge.getValue());
+                } else {
+                    Map<Move, Integer> newMap = new HashMap<>();
+                    newMap.put(from, forwardEdge.getValue());
+                    backEdges.put(to, newMap);
+                }
+            }
+        }
+
+        return backEdges;
     }
 }

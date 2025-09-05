@@ -3,22 +3,25 @@ package notwowe.combodpsmaxxer.algo;
 import notwowe.combodpsmaxxer.Solver;
 import notwowe.combodpsmaxxer.model.Combo;
 import notwowe.combodpsmaxxer.model.Move;
+import notwowe.combodpsmaxxer.model.Moveset;
 
 import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class DPSolver implements Solver {
 
-    public Combo getMaxDpsComboSequenceFromMovesetInTime(List<Move> moveset, int timeDuration) {
+    public Combo getMaxDpsComboSequenceFromMovesetInTime(Moveset moveset, int timeDuration) {
 
-        Map<Move, Combo[]> dpTable = initDpTable(moveset, timeDuration);
+        Map<Move, Combo[]> dpTable = initDpTable(moveset.moves, timeDuration);
 
         for (int i = 0; i <= timeDuration; ++i) {
-            for (Move move : moveset) {
-                solveRecurrenceRelation(dpTable, move, i);
+            for (Move move : moveset.moves) {
+                Map<Move, Integer> backEdges = moveset.backTransitions.get(move);
+                solveRecurrenceRelation(dpTable, move, backEdges, i);
             }
         }
 
@@ -31,25 +34,26 @@ public class DPSolver implements Solver {
 
     // Recurrence relation: Opt(m, t) = optimal damage done by completing move m at time t
     //  Opt(m, t) = max({Opt(n, t-m_t) | n in m.validPrecursorMoves})
-    protected void solveRecurrenceRelation(Map<Move, Combo[]> dpTable, Move currentMove, int timeIndex) {
+    protected void solveRecurrenceRelation(Map<Move, Combo[]> dpTable, Move currentMove, Map<Move, Integer> backEdges, int timeIndex) {
 
         int maxDamage = Integer.MIN_VALUE;
         List<Move> bestMoves = null;
 
-        for (Move previousMove : currentMove.validPrecursorMoves) {
-            int previousMoveTimeIndex = timeIndex - currentMove.animationDuration;
+        for (Map.Entry<Move, Integer> backEdge : backEdges.entrySet()) {
+            Move previousMove = backEdge.getKey();
+            int previousMoveTimeIndex = timeIndex - (currentMove.animationDuration + backEdge.getValue());
             if (previousMoveTimeIndex < 0 || dpTable.get(previousMove)[previousMoveTimeIndex].isInvalid()) {
                 continue;
             }
 
-            int damage = dpTable.get(previousMove)[previousMoveTimeIndex].totalMotionValue + currentMove.motionValue;
+            int damage = dpTable.get(previousMove)[previousMoveTimeIndex].totalDamage + currentMove.damage;
             if (damage > maxDamage) {
                 maxDamage = damage;
                 bestMoves = dpTable.get(previousMove)[previousMoveTimeIndex].moveSequence;
             }
         }
 
-        dpTable.get(currentMove)[timeIndex].totalMotionValue = maxDamage;
+        dpTable.get(currentMove)[timeIndex].totalDamage = maxDamage;
         if (bestMoves != null) {
             dpTable.get(currentMove)[timeIndex].moveSequence = new ArrayList<>(bestMoves);
             dpTable.get(currentMove)[timeIndex].moveSequence.add(currentMove);
@@ -65,7 +69,7 @@ public class DPSolver implements Solver {
 
             Combo finalCombo = comboArr[timeDuration];
 
-            int damage = finalCombo.totalMotionValue;
+            int damage = finalCombo.totalDamage;
             if (damage > maxDamage) {
                 maxDamage = damage;
                 maxDamageCombo = finalCombo;
@@ -91,7 +95,7 @@ public class DPSolver implements Solver {
         return sb.toString();
     }
 
-    private static Map<Move, Combo[]> initDpTable(List<Move> moveset, int timeDuration) {
+    private static Map<Move, Combo[]> initDpTable(Set<Move> moveset, int timeDuration) {
 
         final int dpTimeDimensionSize = timeDuration + 1;
 
@@ -115,11 +119,11 @@ public class DPSolver implements Solver {
         return comboArr;
     }
 
-    // Marks position that are impossible based on frame data as invalid by setting the Combo's MV to a negative
-    // value
+    // Marks position that are impossible based on frame data as invalid by setting the Combo's total damage to a
+    // negative value
     private static void flagInvalidComboStates(Combo[] arr, int size, int animationWindup) {
         for (int i = 0; i < animationWindup && i < size; ++i) {
-            arr[i].totalMotionValue = Integer.MIN_VALUE;
+            arr[i].totalDamage = Integer.MIN_VALUE;
         }
     }
 }

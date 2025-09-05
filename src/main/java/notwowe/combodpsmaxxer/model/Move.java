@@ -1,18 +1,16 @@
 package notwowe.combodpsmaxxer.model;
 
-import java.util.List;
-
 public class Move {
-    public String name;
-    public int motionValue;
-    public int animationDuration;
 
-    public List<Move> validFollowUpOptions;
-    public List<Move> validPrecursorMoves;
+    public static final Move NEUTRAL = new Move("neutral", 0, 0);
 
-    public Move(String name, int motionValue, int animationDuration) {
+    public final String name;
+    public final int damage;
+    public final int animationDuration;
+
+    public Move(String name, int damage, int animationDuration) {
         this.name = name;
-        this.motionValue = motionValue;
+        this.damage = damage;
         this.animationDuration = animationDuration;
     }
 

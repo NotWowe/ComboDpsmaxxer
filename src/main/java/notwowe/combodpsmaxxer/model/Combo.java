@@ -5,25 +5,25 @@ import java.util.List;
 
 public class Combo {
 
-    public int totalMotionValue; //< negative values indicate invalid combos
+    public int totalDamage; //< negative values indicate invalid combos
     public List<Move> moveSequence;
 
-    public Combo(int totalMotionValue) {
-        this(totalMotionValue, new ArrayList<>());
+    public Combo(int totalDamage) {
+        this(totalDamage, new ArrayList<>());
     }
 
-    public Combo(int totalMotionValue, List<Move> moveSequence) {
-        this.totalMotionValue = totalMotionValue;
+    public Combo(int totalDamage, List<Move> moveSequence) {
+        this.totalDamage = totalDamage;
         this.moveSequence = moveSequence;
     }
 
     public boolean isInvalid() {
-        return this.totalMotionValue < 0;
+        return this.totalDamage < 0;
     }
 
     @Override
     public String toString() {
         // TODO: make this valid json
-        return "{MV: " + totalMotionValue + ", sequence: " + moveSequence.toString() + "}";
+        return "{damage: " + totalDamage + ", sequence: " + moveSequence.toString() + "}";
     }
 }

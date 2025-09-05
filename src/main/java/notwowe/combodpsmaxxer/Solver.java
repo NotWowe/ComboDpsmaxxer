@@ -1,10 +1,8 @@
 package notwowe.combodpsmaxxer;
 
 import notwowe.combodpsmaxxer.model.Combo;
-import notwowe.combodpsmaxxer.model.Move;
-
-import java.util.List;
+import notwowe.combodpsmaxxer.model.Moveset;
 
 public interface Solver {
-    Combo getMaxDpsComboSequenceFromMovesetInTime(List<Move> moveset, int timeDuration);
+    Combo getMaxDpsComboSequenceFromMovesetInTime(Moveset moveset, int timeDuration);
 }
