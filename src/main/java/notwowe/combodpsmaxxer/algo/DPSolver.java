@@ -10,13 +10,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 public class DPSolver implements Solver {
 
     public Combo getMaxDpsComboSequenceFromMovesetInTime(Moveset moveset, int timeDuration) {
 
-        Map<Move, Combo[]> dpTable = initDpTable(moveset.moves, timeDuration);
+        Map<Move, Combo[]> dpTable = initDpTable(moveset, Move.IDLE, timeDuration);
+
+        System.out.println("init dp = " + printDpTable(dpTable));
 
         for (int i = 0; i <= timeDuration; ++i) {
             for (Move move : moveset.moves) {
@@ -41,7 +42,8 @@ public class DPSolver implements Solver {
 
         for (Map.Entry<Move, Integer> backEdge : backEdges.entrySet()) {
             Move previousMove = backEdge.getKey();
-            int previousMoveTimeIndex = timeIndex - (currentMove.animationDuration + backEdge.getValue());
+            Integer time = backEdge.getValue();
+            int previousMoveTimeIndex = timeIndex - time;
             if (previousMoveTimeIndex < 0 || dpTable.get(previousMove)[previousMoveTimeIndex].isInvalid()) {
                 continue;
             }
@@ -53,7 +55,7 @@ public class DPSolver implements Solver {
             }
         }
 
-        dpTable.get(currentMove)[timeIndex].totalDamage = maxDamage;
+        dpTable.get(currentMove)[timeIndex].totalDamage = Math.max(dpTable.get(currentMove)[timeIndex].totalDamage, maxDamage);
         if (bestMoves != null) {
             dpTable.get(currentMove)[timeIndex].moveSequence = new ArrayList<>(bestMoves);
             dpTable.get(currentMove)[timeIndex].moveSequence.add(currentMove);
@@ -92,15 +94,21 @@ public class DPSolver implements Solver {
         return sb.toString();
     }
 
-    private static Map<Move, Combo[]> initDpTable(Set<Move> moveset, int timeDuration) {
+    private static Map<Move, Combo[]> initDpTable(Moveset moveset, Move initialMove, int timeDuration) {
 
         final int dpTimeDimensionSize = timeDuration + 1;
 
         Map<Move, Combo[]> dpTable = new HashMap<>();
 
-        for (Move move : moveset) {
+        for (Move move : moveset.moves) {
             Combo[] comboArr = initDefaultInitalizedComboArr(dpTimeDimensionSize);
-            flagInvalidComboStates(comboArr, dpTimeDimensionSize, move.animationDuration);
+
+            if (move != initialMove) {
+                int shortestPathFromInit = moveset.shortestPaths.get(initialMove).get(move);
+
+                System.out.println("Shortest path from " + initialMove.name + " to " + move.name + " is " + shortestPathFromInit);
+                flagInvalidComboStates(comboArr, dpTimeDimensionSize, shortestPathFromInit);
+            }
             dpTable.put(move, comboArr);
         }
 
@@ -118,8 +126,8 @@ public class DPSolver implements Solver {
 
     // Marks position that are impossible based on frame data as invalid by setting the Combo's total damage to a
     // negative value
-    private static void flagInvalidComboStates(Combo[] arr, int size, int animationWindup) {
-        for (int i = 0; i < animationWindup && i < size; ++i) {
+    private static void flagInvalidComboStates(Combo[] arr, int size, int shortestTimeFromSource) {
+        for (int i = 0; i < shortestTimeFromSource && i < size; ++i) {
             arr[i].totalDamage = Integer.MIN_VALUE;
         }
     }
